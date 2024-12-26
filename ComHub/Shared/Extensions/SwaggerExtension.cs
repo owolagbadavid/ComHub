@@ -41,4 +41,19 @@ public static class SwaggerExtension
 
         return services;
     }
+
+    public static IEndpointRouteBuilder RegisterSwagger(this WebApplication app)
+    {
+        if (app.Environment.IsDevelopment())
+        {
+            app.MapOpenApi();
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
+            {
+                // ! sus behavior
+                c.ConfigObject.AdditionalItems.Add("persistAuthorization", true);
+            });
+        }
+        return app;
+    }
 }

@@ -8,11 +8,12 @@ namespace Microsoft.AspNetCore.Builder;
 
 public static class AuthExtension
 {
-    public static IServiceCollection RegisterAuth(
-        this IServiceCollection services,
-        JwtSettings jwtSettings
-    )
+    public static IServiceCollection RegisterAuth(this IServiceCollection services, Config config)
     {
+        var jwtSettings = config.JwtSettings;
+
+        services.AddHttpContextAccessor();
+
         services
             .AddAuthentication(options =>
             {
@@ -62,5 +63,13 @@ public static class AuthExtension
         services.AddAuthorization();
 
         return services;
+    }
+
+    public static IEndpointRouteBuilder RegisterAuth(this WebApplication app)
+    {
+        app.UseAuthentication();
+        app.UseAuthorization();
+
+        return app;
     }
 }
