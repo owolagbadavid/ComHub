@@ -41,11 +41,7 @@ public class ProfileEndpoint : IEndpoint
                     if (userId == 0)
                         throw new UnauthorizedException("User is not authorized");
 
-                    var result = await new PutProfileRequestValidator().ValidateAsync(request);
-                    if (!result.IsValid)
-                    {
-                        throw new BadRequestException(result.Errors[0].ErrorMessage);
-                    }
+                    await HelperService.HandleValidation(new PutProfileRequestValidator(), request);
 
                     await handler.UpdateProfileAsync(userId, request);
 

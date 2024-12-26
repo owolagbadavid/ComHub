@@ -7,7 +7,6 @@ using ComHub.Shared.Exceptions;
 using ComHub.Shared.Services.Utils;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 
 public class AuthHandler(
     IPublishEndpoint publishEndpoint,
@@ -36,21 +35,7 @@ public class AuthHandler(
         }
         catch (DbUpdateException ex)
         {
-            if (ex.InnerException is PostgresException pgEx)
-            {
-                if (pgEx.SqlState == "23505")
-                {
-                    string? columnName = pgEx.ConstraintName?.Replace("UQ_", "").Replace("IX_", ""); // Common naming conventions
-                    if (!string.IsNullOrEmpty(columnName) && columnName.Contains('_'))
-                    {
-                        columnName = columnName[(columnName.LastIndexOf('_') + 1)..];
-                    }
-
-                    throw new BadRequestException(
-                        $"{($"{columnName} " != null ? columnName : "")} Already exists"
-                    );
-                }
-            }
+            HelperService.HandleDBException(ex);
 
             throw;
         }

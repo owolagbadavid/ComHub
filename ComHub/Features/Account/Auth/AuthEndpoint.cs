@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using ComHub.Shared.Exceptions;
 using ComHub.Shared.Interfaces;
 using ComHub.Shared.Models;
+using ComHub.Shared.Services.Utils;
 using Microsoft.AspNetCore.Mvc;
 
 public class AuthEndpoint : IEndpoint
@@ -18,11 +19,7 @@ public class AuthEndpoint : IEndpoint
                 "/register",
                 async (RegisterRequest request, AuthHandler handler) =>
                 {
-                    var result = await new RegisterRequestValidator().ValidateAsync(request);
-                    if (!result.IsValid)
-                    {
-                        throw new BadRequestException(result.Errors[0].ErrorMessage);
-                    }
+                    await HelperService.HandleValidation(new RegisterRequestValidator(), request);
 
                     await handler.RegisterUserAsync(request);
 
@@ -35,16 +32,12 @@ public class AuthEndpoint : IEndpoint
                 "/login",
                 async (LoginRequest request, AuthHandler handler) =>
                 {
-                    var result = await new LoginRequestValidator().ValidateAsync(request);
-                    if (!result.IsValid)
-                    {
-                        throw new BadRequestException(result.Errors[0].ErrorMessage);
-                    }
+                    await HelperService.HandleValidation(new LoginRequestValidator(), request);
 
                     return Results.Ok(await handler.LoginUserAsync(request));
                 }
             )
-            .Produces<Response>(StatusCodes.Status200OK);
+            .Produces<DataResponse<TokenData>>(StatusCodes.Status200OK);
 
         auth.MapPost(
                 "/reset-password",
@@ -54,11 +47,11 @@ public class AuthEndpoint : IEndpoint
                     AuthHandler handler
                 ) =>
                 {
-                    var result = await new ResetPasswordRequestValidator().ValidateAsync(request);
-                    if (!result.IsValid)
-                    {
-                        throw new BadRequestException(result.Errors[0].ErrorMessage);
-                    }
+                    await HelperService.HandleValidation(
+                        new ResetPasswordRequestValidator(),
+                        request
+                    );
+
                     await handler.ResetPasswordAsync(email, request);
 
                     return Results.Ok();
@@ -70,11 +63,10 @@ public class AuthEndpoint : IEndpoint
                 "/forgot-password",
                 async (ForgotPasswordRequest request, AuthHandler handler) =>
                 {
-                    var result = await new ForgotPasswordRequestValidator().ValidateAsync(request);
-                    if (!result.IsValid)
-                    {
-                        throw new BadRequestException(result.Errors[0].ErrorMessage);
-                    }
+                    await HelperService.HandleValidation(
+                        new ForgotPasswordRequestValidator(),
+                        request
+                    );
 
                     await handler.ForgotPasswordAsync(request.Email);
 
@@ -83,4 +75,9 @@ public class AuthEndpoint : IEndpoint
             )
             .Produces<Response>(StatusCodes.Status200OK);
     }
+}
+
+public class TokenData
+{
+    public required string Token { get; set; }
 }
