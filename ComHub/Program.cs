@@ -59,8 +59,7 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-app.UseCors("default");
-
+app.UseCors();
 app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 
 var api = app.MapGroup("/api");
