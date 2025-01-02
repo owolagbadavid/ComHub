@@ -28,9 +28,7 @@ public static class HelperService
                     columnName = columnName[(columnName.LastIndexOf('_') + 1)..];
                 }
 
-                throw new BadRequestException(
-                    $"{($"{columnName} " != null ? columnName : "")} Already exists"
-                );
+                throw new BadRequestException($"{columnName ?? ""} Already exists".Trim());
             }
         }
     }

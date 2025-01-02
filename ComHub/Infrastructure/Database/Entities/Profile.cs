@@ -6,7 +6,7 @@ public class Profile : BaseEntity
 
     public string? LastName { get; set; }
 
-    public string FullName => $"{FirstName}{(LastName != null ? $" {LastName}" : string.Empty)}";
+    public string FullName => $"{FirstName} {LastName ?? string.Empty}".Trim();
 
     public string? ProfilePicture { get; set; }
 
