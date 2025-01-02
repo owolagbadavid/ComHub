@@ -21,7 +21,7 @@ public class ItemCommandEndpoint : IEndpoint
             {
                 await HelperService.HandleValidation(new CreateItemRequestValidator(), request);
 
-                await handler.AddEditItem(request);
+                return Results.Ok(await handler.AddEditItem(request));
             }
         );
 
@@ -31,7 +31,7 @@ public class ItemCommandEndpoint : IEndpoint
             {
                 await HelperService.HandleValidation(new CreateItemRequestValidator(), request);
 
-                await handler.AddEditItem(request, id);
+                return Results.Ok(await handler.AddEditItem(request, id));
             }
         );
     }

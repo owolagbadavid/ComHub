@@ -10,7 +10,7 @@ public class ItemCommandHandler(AppDbContext dbContext, IUserContext userContext
 {
     private readonly AppDbContext _dbContext = dbContext;
 
-    public async Task AddEditItem(CreateItemRequest request, int id = default)
+    public async Task<int> AddEditItem(CreateItemRequest request, int id = default)
     {
         var user =
             await _dbContext.Users.FindAsync(userContext.UserId)
@@ -48,5 +48,7 @@ public class ItemCommandHandler(AppDbContext dbContext, IUserContext userContext
         }
 
         await _dbContext.SaveChangesAsync();
+
+        return item.Id;
     }
 }
