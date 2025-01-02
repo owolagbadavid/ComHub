@@ -73,18 +73,12 @@ public class PutProfileRequestValidator : AbstractValidator<PutProfileRequest>
     {
         RuleFor(x => x.FirstName).NotEmpty();
         RuleFor(x => x.ProfilePicture)
-            .Must(BeAValidUrl)
+            .Must(HelperService.BeAValidUrl)
             .When(x => x.ProfilePicture != null)
             .WithMessage("'ProfilePicture' Invalid URL");
         RuleFor(x => x.Website)
-            .Must(BeAValidUrl)
+            .Must(HelperService.BeAValidUrl)
             .When(x => x.Website != null)
             .WithMessage("'Website' Invalid URL");
-    }
-
-    private static bool BeAValidUrl(string? url)
-    {
-        return Uri.TryCreate(url, UriKind.Absolute, out Uri? uriResult)
-            && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
     }
 }

@@ -12,6 +12,17 @@ public class AppDbContext(DbContextOptions options) : DbContext(options)
         base.OnModelCreating(modelBuilder);
         modelBuilder.HasPostgresEnum<UserRole>();
         modelBuilder.HasPostgresEnum<ItemStatus>();
+        modelBuilder.HasPostgresEnum<UserStatus>();
+
+        foreach (
+            var property in modelBuilder
+                .Model.GetEntityTypes()
+                .SelectMany(x => x.GetProperties())
+                .Where(x => x.ClrType == typeof(decimal) || x.ClrType == typeof(decimal?))
+        )
+        {
+            property.SetColumnType("decimal(18,4)");
+        }
 
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
@@ -22,6 +33,7 @@ public class AppDbContext(DbContextOptions options) : DbContext(options)
                     .HasQueryFilter(ConvertFilterExpression(entityType.ClrType));
             }
         }
+
         modelBuilder.Entity<ItemCategory>().HasQueryFilter(ic => !ic.Category.IsDeleted);
         modelBuilder.Entity<ItemCategory>().HasQueryFilter(ic => !ic.Item.IsDeleted);
 

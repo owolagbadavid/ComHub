@@ -15,5 +15,7 @@ public class User : BaseEntity
         set => PasswordHash = PasswordHasher.HashPassword(value);
     }
     public Profile? Profile { get; set; }
-    public UserRole Role { get; set; } = UserRole.User; // Optional: e.g., "Admin", "User"
+    public UserRole Role { get; set; } = UserRole.User;
+
+    public UserStatus Status { get; set; } = UserStatus.Pending;
 }

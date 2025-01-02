@@ -22,9 +22,9 @@ public class Item : BaseEntity
 
     public int OwnerId { get; set; }
 
-    public List<ItemCategory>? ItemCategories { get; set; }
+    public List<ItemCategory> ItemCategories { get; set; } = [];
 
-    public required ItemStatus Status { get; set; } = ItemStatus.Pending; // Optional: e.g., "Sold", "Available"
+    public ItemStatus Status { get; set; } = ItemStatus.Pending; // Optional: e.g., "Sold", "Available"
 
     // public required List<string> Colors { get; set; }
 
