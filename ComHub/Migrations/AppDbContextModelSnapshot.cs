@@ -22,6 +22,7 @@ namespace ComHub.Migrations
 
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "item_status", new[] { "pending", "approved", "rejected", "sold_out" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "user_role", new[] { "user", "admin" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "user_status", new[] { "pending", "activated", "locked", "suspended" });
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("ComHub.Infrastructure.Database.Entities.Category", b =>
@@ -227,6 +228,9 @@ namespace ComHub.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
                         .HasDefaultValue(0);
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");

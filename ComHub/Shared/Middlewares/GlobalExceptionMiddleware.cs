@@ -4,6 +4,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using ComHub.Shared.Exceptions;
+using ComHub.Shared.Models;
 
 namespace ComHub.Shared.Middlewares;
 
@@ -95,12 +96,12 @@ public class GlobalExceptionHandlerMiddleware(RequestDelegate next, string[]? ap
         var error = exception.GetType().Name;
 
         var exceptionResult = JsonSerializer.Serialize(
-            new
+            new ErrorResponse
             {
-                message,
+                Message = message,
                 // StackTrace = stackTrace,
-                statusCode = status,
-                error,
+                StatusCode = status,
+                Error = error,
             }
         );
         context.Response.ContentType = "application/json";
@@ -109,13 +110,13 @@ public class GlobalExceptionHandlerMiddleware(RequestDelegate next, string[]? ap
         return context.Response.WriteAsync(exceptionResult);
     }
 
-    private dynamic TransformResponse(HttpContext context, string responseBody)
+    private static dynamic TransformResponse(HttpContext context, string responseBody)
     {
         dynamic? originalResponse;
         try
         {
             // Parse the original response
-            originalResponse = JsonSerializer.Deserialize<ExpandoObject>(responseBody);
+            originalResponse = JsonSerializer.Deserialize<dynamic>(responseBody);
         }
         catch
         {
@@ -125,16 +126,29 @@ public class GlobalExceptionHandlerMiddleware(RequestDelegate next, string[]? ap
             originalResponse = responseBody;
         }
         // Create the new response object
-        dynamic transformedResponse = new ExpandoObject();
+        var transformedResponse = new Response
+        {
+            StatusCode = context.Response.StatusCode,
+            Message = "Successful",
+        };
 
-        // Set status code
-        transformedResponse.statusCode = context.Response.StatusCode;
+        if (originalResponse is null || originalResponse as string == string.Empty)
+            return transformedResponse;
 
-        transformedResponse.message = "Successful";
+        var responseType = originalResponse.GetType();
 
-        // Nest original properties in 'data' if it is not null or empty
-        if (originalResponse != null && originalResponse as string != string.Empty)
-            transformedResponse.data = originalResponse;
+        // Dynamically create a DataResponse with the appropriate generic type
+        var dataResponseType = typeof(DataResponse<>).MakeGenericType(responseType);
+
+        // Create an instance of DataResponse with the correct type
+        transformedResponse = Activator.CreateInstance(dataResponseType);
+
+        // Set properties dynamically using reflection
+        dataResponseType
+            .GetProperty("StatusCode")
+            ?.SetValue(transformedResponse, context.Response.StatusCode);
+        dataResponseType.GetProperty("Message")?.SetValue(transformedResponse, "Successful");
+        dataResponseType.GetProperty("Data")?.SetValue(transformedResponse, originalResponse);
 
         return transformedResponse;
     }

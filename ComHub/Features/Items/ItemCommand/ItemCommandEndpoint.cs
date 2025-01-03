@@ -2,6 +2,7 @@ namespace ComHub.Features.Items.ItemCommand;
 
 using System.ComponentModel.DataAnnotations;
 using ComHub.Shared.Interfaces;
+using ComHub.Shared.Models;
 using ComHub.Shared.Services.Utils;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
@@ -16,24 +17,26 @@ public class ItemCommandEndpoint : IEndpoint
             .WithCommonResponses([StatusCodes.Status401Unauthorized]);
 
         item.MapPost(
-            "/",
-            async (CreateItemRequest request, ItemCommandHandler handler) =>
-            {
-                await HelperService.HandleValidation(new CreateItemRequestValidator(), request);
+                "/",
+                async (CreateItemRequest request, ItemCommandHandler handler) =>
+                {
+                    await HelperService.HandleValidation(new CreateItemRequestValidator(), request);
 
-                return Results.Ok(await handler.AddEditItem(request));
-            }
-        );
+                    return Results.Created("", await handler.AddEditItem(request));
+                }
+            )
+            .Produces<DataResponse<int>>(StatusCodes.Status201Created);
 
         item.MapPut(
-            "/{id}",
-            async (int id, CreateItemRequest request, ItemCommandHandler handler) =>
-            {
-                await HelperService.HandleValidation(new CreateItemRequestValidator(), request);
+                "/{id}",
+                async (int id, CreateItemRequest request, ItemCommandHandler handler) =>
+                {
+                    await HelperService.HandleValidation(new CreateItemRequestValidator(), request);
 
-                return Results.Ok(await handler.AddEditItem(request, id));
-            }
-        );
+                    return Results.Ok(await handler.AddEditItem(request, id));
+                }
+            )
+            .Produces<DataResponse<int>>(StatusCodes.Status200OK);
     }
 }
 
