@@ -98,7 +98,7 @@ public class AuthHandler(
     {
         var user = await dbContext
             .Users.Include(u => u.Profile)
-            .FirstOrDefaultAsync(u => u.Email == email);
+            .FirstOrDefaultAsync(u => u.Email == email.Trim().ToUpperInvariant());
 
         if (user == null)
             return;
