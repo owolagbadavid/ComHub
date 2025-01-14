@@ -7,4 +7,5 @@ public class ItemImage : BaseEntity
     public required int ItemId { get; set; }
 
     public required Item Item { get; set; }
+    public required bool IsMain { get; set; }
 }

@@ -48,6 +48,7 @@ builder.Services.AddMassTransit(x =>
         }
     );
 });
+builder.Services.AddAutoMapper(typeof(Program));
 
 builder.Services.AddCors(options =>
 {

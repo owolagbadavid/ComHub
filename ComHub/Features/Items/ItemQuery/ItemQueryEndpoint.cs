@@ -38,6 +38,15 @@ public class ItemCommandEndpoint : IEndpoint
                     return Results.Ok(await handler.GetItems(request));
                 }
             )
-            .Produces<DataResponse<PaginationResponse<Item>>>(StatusCodes.Status200OK);
+            .Produces<DataResponse<PaginationResponse<SearchItemModel>>>(StatusCodes.Status200OK);
+
+        item.MapGet(
+                "/{id:int}",
+                async (ItemQueryHandler handler, int id) =>
+                {
+                    return Results.Ok(await handler.GetItem(id));
+                }
+            )
+            .Produces<DataResponse<SearchItemModel>>(StatusCodes.Status200OK);
     }
 }
