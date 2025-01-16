@@ -43,4 +43,30 @@ public class ItemQueryHandler(AppDbContext dbContext, IUserContext userContext, 
         return mapper.Map<ItemModel>(await _dbContext.Items.FindAsync(id))
             ?? throw new NotFoundException("Item not found");
     }
+
+    public async Task<PaginationResponse<CategoryModel>> GetCategories(PaginationRequest req)
+    {
+        var query = _dbContext.Categories.AsQueryable();
+
+        query = req.SortColumn switch
+        {
+            _ => string.Equals(req.SortOrder.Trim(), "asc")
+                ? query.OrderBy(x => x.Id)
+                : query.OrderByDescending(x => x.Id),
+        };
+
+        var count = await query.CountAsync();
+
+        var categories = mapper.Map<IEnumerable<CategoryModel>>(
+            await query.Skip((req.PageNumber - 1) * req.PageSize).Take(req.PageSize).ToListAsync()
+        );
+
+        return new PaginationResponse<CategoryModel>
+        {
+            Items = categories,
+            Total = count,
+            PageNumber = req.PageNumber,
+            PageSize = req.PageSize,
+        };
+    }
 }

@@ -24,7 +24,8 @@ public class ItemCommandEndpoint : IEndpoint
                     [FromQuery] int pageNumber = 1,
                     [FromQuery] int pageSize = 20,
                     [FromQuery] string? sortColumn = null,
-                    [FromQuery] string sortOrder = "desc"
+                    [FromQuery] string sortOrder = "desc",
+                    [FromQuery] string? search = null
                 ) =>
                 {
                     var request = new PaginationRequest
@@ -33,6 +34,7 @@ public class ItemCommandEndpoint : IEndpoint
                         PageSize = pageSize,
                         SortColumn = sortColumn,
                         SortOrder = sortOrder,
+                        Search = search,
                     };
 
                     return Results.Ok(await handler.GetItems(request));
@@ -48,5 +50,29 @@ public class ItemCommandEndpoint : IEndpoint
                 }
             )
             .Produces<DataResponse<SearchItemModel>>(StatusCodes.Status200OK);
+
+        item.MapGet(
+                "/categories",
+                async (
+                    ItemQueryHandler handler,
+                    [FromQuery] int pageNumber = 1,
+                    [FromQuery] int pageSize = 20,
+                    [FromQuery] string? sortColumn = null,
+                    [FromQuery] string sortOrder = "desc",
+                    [FromQuery] string? search = null
+                ) =>
+                {
+                    var request = new PaginationRequest
+                    {
+                        PageNumber = pageNumber,
+                        PageSize = pageSize,
+                        SortColumn = sortColumn,
+                        SortOrder = sortOrder,
+                        Search = search,
+                    };
+                    return Results.Ok(await handler.GetCategories(request));
+                }
+            )
+            .Produces<DataResponse<PaginationResponse<CategoryModel>>>(StatusCodes.Status200OK);
     }
 }

@@ -32,6 +32,13 @@ public class SearchItemModel
     public DateTime UpdatedAt { get; set; }
 }
 
+public class CategoryModel
+{
+    public int Id { get; set; }
+    public required string Name { get; set; }
+    public string? Description { get; set; }
+}
+
 sealed class MappingProfile : AutoMapper.Profile
 {
     public MappingProfile()
@@ -65,5 +72,7 @@ sealed class MappingProfile : AutoMapper.Profile
                             : string.Empty
                     )
             );
+
+        CreateMap<Category, CategoryModel>();
     }
 }
