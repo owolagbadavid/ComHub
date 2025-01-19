@@ -13,15 +13,15 @@ builder.Configuration.AddEnvironmentVariables();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.RegisterSwagger();
-
-builder.Services.AddSharedServices(builder.Configuration);
-builder.Services.RegisterHandlers();
-
 var config =
     builder.Configuration.GetSection("AppConfig").Get<Config>()
     ?? throw new Exception("AppConfig is not configured");
 
+builder.Services.AddSharedServices(builder.Configuration, config);
+builder.Services.RegisterHandlers();
+
 builder.Services.RegisterAuth(config);
+builder.Services.AddSingleton<Config>(config);
 
 // builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 

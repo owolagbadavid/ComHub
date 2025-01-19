@@ -14,7 +14,7 @@ public class Item : BaseEntity
     [Range(1, int.MaxValue)]
     public required int Quantity { get; set; }
 
-    public List<ItemImage>? Images { get; set; }
+    public List<ItemImage> Images { get; set; } = [];
 
     public required string Brand { get; set; }
 

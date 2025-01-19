@@ -9,6 +9,7 @@ public class Config
     public required MailConfig Mail { get; set; }
 
     public required JwtSettings JwtSettings { get; set; }
+    public required CloudConfig CloudConfig { get; set; }
 }
 
 public class MailConfig
@@ -42,4 +43,13 @@ public class JwtSettings
     public required string Issuer { get; set; }
     public required string Audience { get; set; }
     public int ExpiryMinutes { get; set; }
+}
+
+public class CloudConfig
+{
+    public required string BucketName { get; set; }
+    public required string AccessKey { get; set; }
+    public required string SecretKey { get; set; }
+    public required string Region { get; set; }
+    public required string GeneralFolder { get; set; }
 }

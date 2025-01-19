@@ -38,4 +38,13 @@ public static class HelperService
         return Uri.TryCreate(url, UriKind.Absolute, out Uri? uriResult)
             && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
     }
+
+    public static string GenerateRandomString(int length)
+    {
+        var random = new Random();
+        const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        return new string(
+            [.. Enumerable.Repeat(chars, length).Select(s => s[random.Next(s.Length)])]
+        );
+    }
 }

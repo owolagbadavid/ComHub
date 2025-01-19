@@ -5,7 +5,6 @@ using ComHub.Shared.Interfaces;
 using ComHub.Shared.Models;
 using ComHub.Shared.Services.Utils;
 using FluentValidation;
-using Microsoft.AspNetCore.Mvc;
 
 public class ItemCommandEndpoint : IEndpoint
 {
@@ -14,29 +13,39 @@ public class ItemCommandEndpoint : IEndpoint
         var item = app.MapGroup("/items")
             .WithTags("Items")
             .RequireAuthorization()
-            .WithCommonResponses([StatusCodes.Status401Unauthorized]);
+            .WithCommonResponses([StatusCodes.Status401Unauthorized])
+            .DisableAntiforgery();
 
         item.MapPost(
                 "/",
-                async ([FromForm] CreateItemRequest request, ItemCommandHandler handler) =>
+                async (
+                    CreateItemRequest request,
+                    ItemCommandHandler handler,
+                    CancellationToken ct
+                ) =>
                 {
                     await HelperService.HandleValidation(new CreateItemRequestValidator(), request);
 
-                    return Results.Created("", await handler.AddEditItem(request));
+                    return Results.Created("", await handler.AddEditItem(request, ct: ct));
                 }
             )
-            .Produces<DataResponse<int>>(StatusCodes.Status201Created);
+            .Produces<DataResponse<CreatedWithUrls>>(StatusCodes.Status201Created);
 
         item.MapPut(
                 "/{id}",
-                async (int id, [FromForm] CreateItemRequest request, ItemCommandHandler handler) =>
+                async (
+                    int id,
+                    CreateItemRequest request,
+                    ItemCommandHandler handler,
+                    CancellationToken ct
+                ) =>
                 {
                     await HelperService.HandleValidation(new CreateItemRequestValidator(), request);
 
-                    return Results.Ok(await handler.AddEditItem(request, id));
+                    return Results.Ok(await handler.AddEditItem(request, id, ct));
                 }
             )
-            .Produces<DataResponse<int>>(StatusCodes.Status200OK);
+            .Produces<DataResponse<CreatedWithUrls>>(StatusCodes.Status200OK);
     }
 }
 
@@ -57,11 +66,10 @@ public class CreateItemRequest
     [Required]
     public string Brand { get; set; } = string.Empty;
 
-    [Required]
-    public ICollection<int> CategoryIds { get; set; } = [];
+    public int ImageCount { get; set; }
 
     [Required]
-    public ICollection<IFormFile> Images { get; set; } = [];
+    public ICollection<int> CategoryIds { get; set; } = [];
 }
 
 public class CreateItemRequestValidator : AbstractValidator<CreateItemRequest>
@@ -77,6 +85,5 @@ public class CreateItemRequestValidator : AbstractValidator<CreateItemRequest>
             .Must(x => x.Count <= 5)
             .WithMessage("Maximum of 5 categories allowed");
         RuleForEach(x => x.CategoryIds).GreaterThan(0);
-        RuleFor(x => x.Images).Must(x => x.Count > 1).WithMessage("Minimum of 2 images required");
     }
 }
