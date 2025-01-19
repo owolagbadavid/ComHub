@@ -47,6 +47,17 @@ public class ItemCommandHandler(AppDbContext dbContext, IUserContext userContext
             await _dbContext.Items.AddAsync(item);
         }
 
+        foreach (var categoryId in request.CategoryIds)
+        {
+            var category =
+                await _dbContext.Categories.FindAsync(categoryId)
+                ?? throw new NotFoundException("Category not found");
+
+            var itemCategory = new ItemCategory { Item = item, Category = category };
+
+            await _dbContext.ItemCategories.AddAsync(itemCategory);
+        }
+
         await _dbContext.SaveChangesAsync();
 
         return item.Id;

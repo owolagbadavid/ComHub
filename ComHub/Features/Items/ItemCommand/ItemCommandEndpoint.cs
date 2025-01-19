@@ -18,7 +18,7 @@ public class ItemCommandEndpoint : IEndpoint
 
         item.MapPost(
                 "/",
-                async (CreateItemRequest request, ItemCommandHandler handler) =>
+                async ([FromForm] CreateItemRequest request, ItemCommandHandler handler) =>
                 {
                     await HelperService.HandleValidation(new CreateItemRequestValidator(), request);
 
@@ -29,7 +29,7 @@ public class ItemCommandEndpoint : IEndpoint
 
         item.MapPut(
                 "/{id}",
-                async (int id, CreateItemRequest request, ItemCommandHandler handler) =>
+                async (int id, [FromForm] CreateItemRequest request, ItemCommandHandler handler) =>
                 {
                     await HelperService.HandleValidation(new CreateItemRequestValidator(), request);
 
@@ -55,7 +55,13 @@ public class CreateItemRequest
     public int Quantity { get; set; }
 
     [Required]
-    public required string Brand { get; set; } = string.Empty;
+    public string Brand { get; set; } = string.Empty;
+
+    [Required]
+    public ICollection<int> CategoryIds { get; set; } = [];
+
+    [Required]
+    public ICollection<IFormFile> Images { get; set; } = [];
 }
 
 public class CreateItemRequestValidator : AbstractValidator<CreateItemRequest>
@@ -67,5 +73,10 @@ public class CreateItemRequestValidator : AbstractValidator<CreateItemRequest>
         RuleFor(x => x.Price).GreaterThan(0);
         RuleFor(x => x.Quantity).GreaterThan(0);
         RuleFor(x => x.Brand).NotEmpty();
+        RuleFor(x => x.CategoryIds)
+            .Must(x => x.Count <= 5)
+            .WithMessage("Maximum of 5 categories allowed");
+        RuleForEach(x => x.CategoryIds).GreaterThan(0);
+        RuleFor(x => x.Images).Must(x => x.Count > 1).WithMessage("Minimum of 2 images required");
     }
 }
