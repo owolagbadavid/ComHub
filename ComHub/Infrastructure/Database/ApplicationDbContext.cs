@@ -1,11 +1,12 @@
 namespace Api.Db;
 
 using System.Linq.Expressions;
+using System.Text.RegularExpressions;
 using ComHub.Infrastructure.Database.Entities;
 using ComHub.Infrastructure.Database.Entities.Enums;
 using Microsoft.EntityFrameworkCore;
 
-public class AppDbContext(DbContextOptions options) : DbContext(options)
+public partial class AppDbContext(DbContextOptions options) : DbContext(options)
 {
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -13,6 +14,7 @@ public class AppDbContext(DbContextOptions options) : DbContext(options)
         modelBuilder.HasPostgresEnum<UserRole>();
         modelBuilder.HasPostgresEnum<ItemStatus>();
         modelBuilder.HasPostgresEnum<UserStatus>();
+        modelBuilder.HasPostgresEnum<MessageStatus>();
 
         foreach (
             var property in modelBuilder
@@ -32,12 +34,27 @@ public class AppDbContext(DbContextOptions options) : DbContext(options)
                     .Entity(entityType.ClrType)
                     .HasQueryFilter(ConvertFilterExpression(entityType.ClrType));
             }
+
+            foreach (var property in entityType.GetProperties())
+            {
+                var originalName = property.GetColumnName();
+                var snakeCaseName = ToSnakeCase(originalName);
+                property.SetColumnName(snakeCaseName);
+            }
         }
 
         modelBuilder.Entity<ItemCategory>().HasQueryFilter(ic => !ic.Category.IsDeleted);
         modelBuilder.Entity<ItemCategory>().HasQueryFilter(ic => !ic.Item.IsDeleted);
 
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+    }
+
+    private static string ToSnakeCase(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return input;
+
+        return MyRegex().Replace(input, "$1_$2").ToLower();
     }
 
     private static LambdaExpression ConvertFilterExpression(Type entityType)
@@ -96,4 +113,11 @@ public class AppDbContext(DbContextOptions options) : DbContext(options)
     public DbSet<Item> Items => Set<Item>();
     public DbSet<ItemCategory> ItemCategories => Set<ItemCategory>();
     public DbSet<ItemImage> ItemImages => Set<ItemImage>();
+    public DbSet<UserMessage> UsersMessages => Set<UserMessage>();
+    public DbSet<Message> Messages => Set<Message>();
+    public DbSet<Conversation> Conversations => Set<Conversation>();
+    public DbSet<UserConversation> UsersConversations => Set<UserConversation>();
+
+    [GeneratedRegex(@"([a-z0-9])([A-Z])")]
+    private static partial Regex MyRegex();
 }
