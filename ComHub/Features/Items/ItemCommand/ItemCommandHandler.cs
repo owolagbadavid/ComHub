@@ -1,5 +1,6 @@
 namespace ComHub.Features.Items.ItemCommand;
 
+using System.Collections.Concurrent;
 using Api.Db;
 using ComHub.Infrastructure.Cloud;
 using ComHub.Infrastructure.Database.Entities;
@@ -16,7 +17,7 @@ public class ItemCommandHandler(
 {
     private readonly AppDbContext _dbContext = dbContext;
 
-    public async Task<CreatedWithUrls> AddEditItem(
+    public async Task<int> AddEditItem(
         CreateItemRequest request,
         int id = default,
         CancellationToken ct = default
@@ -27,8 +28,6 @@ public class ItemCommandHandler(
             ?? throw new NotFoundException("User not found");
 
         Item? item;
-
-        List<string> imageUrls = [];
 
         if (id != default)
         {
@@ -45,12 +44,6 @@ public class ItemCommandHandler(
             item.Price = request.Price;
             item.Quantity = request.Quantity;
             item.Brand = request.Brand.Trim();
-
-            foreach (var image in item.Images)
-            {
-                imageUrls.Add(image.Url);
-                _dbContext.ItemImages.Remove(image);
-            }
 
             _dbContext.Items.Update(item);
         }
@@ -80,22 +73,87 @@ public class ItemCommandHandler(
             await _dbContext.ItemCategories.AddAsync(itemCategory, ct);
         }
 
-        foreach (var i in Enumerable.Range(0, request.ImageCount))
+        await _dbContext.SaveChangesAsync(ct);
+
+        return item.Id;
+    }
+
+    public async Task DeleteItemImages(int id, List<int> imageIds, CancellationToken ct = default)
+    {
+        var item =
+            await _dbContext
+                .Items.Where(x => x.Id == id)
+                .Select(x => new
+                {
+                    x.Id,
+                    x.Name,
+                    Images = x.Images.Where(img => imageIds.Contains(img.Id)).ToList(),
+                })
+                .FirstOrDefaultAsync(ct) ?? throw new NotFoundException("Item not found");
+
+        foreach (var image in item.Images)
         {
-            var imageUrl = await cloudStorage.GeneratePresignedUrlAsync(
-                HelperService.GenerateRandomString(8),
-                ct: ct
-            );
-
-            var itemImage = new ItemImage { Item = item, Url = imageUrl };
-
-            await _dbContext.ItemImages.AddAsync(itemImage, ct);
+            _dbContext.ItemImages.Remove(image);
         }
 
         await _dbContext.SaveChangesAsync(ct);
 
-        await Task.WhenAll(imageUrls.Select(url => cloudStorage.DeleteFileAsync(url, ct)));
+        await Task.WhenAll(
+            item.Images.Select(image => cloudStorage.DeleteFileAsync(image.Url, ct))
+        );
 
-        return new CreatedWithUrls { Id = item.Id, Urls = [.. item.Images.Select(x => x.Url)] };
+        await _dbContext.SaveChangesAsync(ct);
+    }
+
+    public async Task<int> AddItemImages(
+        int id,
+        IFormFileCollection images,
+        CancellationToken ct = default
+    )
+    {
+        var item =
+            await _dbContext.Items.FindAsync([id], cancellationToken: ct)
+            ?? throw new NotFoundException("Item not found");
+
+        var imageUrls = new ConcurrentBag<string>();
+        try
+        {
+            var tasks = images.Select(async image =>
+            {
+                try
+                {
+                    string url = await cloudStorage.SaveFileAsync(
+                        image,
+                        HelperService.GenerateRandomString(6),
+                        ct: ct
+                    );
+
+                    imageUrls.Add(url);
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception("Error saving images", ex);
+                }
+            });
+
+            await Task.WhenAll(tasks);
+
+            foreach (var url in imageUrls)
+            {
+                var itemImage = new ItemImage { Item = item, Url = url };
+
+                await _dbContext.ItemImages.AddAsync(itemImage, ct);
+            }
+
+            await _dbContext.SaveChangesAsync(ct);
+
+            return item.Id;
+        }
+        catch (Exception)
+        {
+            //  Rollback
+            await Task.WhenAll(imageUrls.Select(url => cloudStorage.DeleteFileAsync(url, ct)));
+            throw;
+        }
     }
 }

@@ -5,6 +5,7 @@ using ComHub.Shared.Interfaces;
 using ComHub.Shared.Models;
 using ComHub.Shared.Services.Utils;
 using FluentValidation;
+using Microsoft.AspNetCore.Mvc;
 
 public class ItemCommandEndpoint : IEndpoint
 {
@@ -46,6 +47,19 @@ public class ItemCommandEndpoint : IEndpoint
                 }
             )
             .Produces<DataResponse<CreatedWithUrls>>(StatusCodes.Status200OK);
+
+        item.MapPatch(
+            "/{id}/images",
+            async (
+                int id,
+                [FromForm] IFormFileCollection images,
+                ItemCommandHandler handler,
+                CancellationToken ct
+            ) =>
+            {
+                return Results.Ok(await handler.AddItemImages(id, images, ct));
+            }
+        );
     }
 }
 
@@ -65,8 +79,6 @@ public class CreateItemRequest
 
     [Required]
     public string Brand { get; set; } = string.Empty;
-
-    public int ImageCount { get; set; }
 
     [Required]
     public ICollection<int> CategoryIds { get; set; } = [];

@@ -3,6 +3,7 @@ using ComHub.Shared.Config;
 using ComHub.Shared.Middlewares;
 using ComHub.Shared.Services.Notifications.Email;
 using MassTransit;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
 
 // using FluentValidation;
@@ -10,6 +11,11 @@ using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration.AddEnvironmentVariables();
+
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 10 * 1024 * 1024; // 10MB limit
+});
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.RegisterSwagger();
@@ -21,7 +27,7 @@ builder.Services.AddSharedServices(builder.Configuration, config);
 builder.Services.RegisterHandlers();
 
 builder.Services.RegisterAuth(config);
-builder.Services.AddSingleton<Config>(config);
+builder.Services.AddSingleton(config);
 
 // builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
