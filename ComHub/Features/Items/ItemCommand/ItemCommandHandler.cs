@@ -118,25 +118,21 @@ public class ItemCommandHandler(
         var imageUrls = new ConcurrentBag<string>();
         try
         {
-            var tasks = images.Select(async image =>
-            {
-                try
+            var options = new ParallelOptions { CancellationToken = ct };
+            await Parallel.ForEachAsync(
+                images,
+                options,
+                async (image, cancellationToken) =>
                 {
                     string url = await cloudStorage.SaveFileAsync(
                         image,
                         HelperService.GenerateRandomString(6),
-                        ct: ct
+                        ct: cancellationToken
                     );
 
                     imageUrls.Add(url);
                 }
-                catch (Exception ex)
-                {
-                    throw new Exception("Error saving images", ex);
-                }
-            });
-
-            await Task.WhenAll(tasks);
+            );
 
             foreach (var url in imageUrls)
             {
@@ -152,8 +148,12 @@ public class ItemCommandHandler(
         catch (Exception)
         {
             //  Rollback
-            await Task.WhenAll(imageUrls.Select(url => cloudStorage.DeleteFileAsync(url, ct)));
-            throw;
+            _ = Task.Run(
+                () => Task.WhenAll(imageUrls.Select(url => cloudStorage.DeleteFileAsync(url, ct))),
+                CancellationToken.None
+            );
+
+            throw new Exception("Failed to upload images");
         }
     }
 }
