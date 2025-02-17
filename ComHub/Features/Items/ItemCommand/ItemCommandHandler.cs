@@ -156,4 +156,51 @@ public class ItemCommandHandler(
             throw new Exception("Failed to upload images");
         }
     }
+
+    public async Task AddEditCategories(List<Category> categories, CancellationToken ct = default)
+    {
+        var categoryNames = categories.Select(c => c.Name.ToLower()).ToHashSet();
+
+        var existingCategories = await _dbContext
+            .Categories.Where(c => categoryNames.Contains(c.Name.ToLower()))
+            .ToListAsync(ct);
+
+        var existingCategoryMap = existingCategories.ToDictionary(c => c.Name.ToLower());
+
+        var newCategories = new List<Category>();
+
+        foreach (var category in categories)
+        {
+            var lowerCaseName = category.Name.ToLower();
+
+            if (existingCategoryMap.TryGetValue(lowerCaseName, out var existingCategory))
+            {
+                existingCategory.Name = category.Name;
+                existingCategory.Description = category.Description;
+            }
+            else
+            {
+                newCategories.Add(category);
+            }
+        }
+
+        if (newCategories.Count != 0)
+            await _dbContext.Categories.AddRangeAsync(newCategories, ct);
+
+        if (existingCategories.Count != 0)
+            _dbContext.Categories.UpdateRange(existingCategories);
+
+        await _dbContext.SaveChangesAsync(ct);
+    }
+
+    public async Task DeleteCategories(List<int> categoryIds, CancellationToken ct = default)
+    {
+        var categories = await _dbContext
+            .Categories.Where(c => categoryIds.Contains(c.Id))
+            .ToListAsync(ct);
+
+        _dbContext.Categories.RemoveRange(categories);
+
+        await _dbContext.SaveChangesAsync(ct);
+    }
 }

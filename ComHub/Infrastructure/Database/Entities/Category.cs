@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace ComHub.Infrastructure.Database.Entities;
 
 public class Category : BaseEntity
@@ -6,5 +8,6 @@ public class Category : BaseEntity
 
     public required string Description { get; set; }
 
-    public required List<ItemCategory> ItemCategories { get; set; }
+    [JsonIgnore]
+    public List<ItemCategory>? ItemCategories { get; set; }
 }

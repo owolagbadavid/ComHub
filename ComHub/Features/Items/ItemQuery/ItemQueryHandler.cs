@@ -48,6 +48,11 @@ public class ItemQueryHandler(AppDbContext dbContext, IUserContext userContext, 
     {
         var query = _dbContext.Categories.AsQueryable();
 
+        if (!string.IsNullOrWhiteSpace(req.Search))
+        {
+            query = query.Where(x => EF.Functions.ILike(x.Name, $"%{req.Search}%"));
+        }
+
         query = req.SortColumn switch
         {
             _ => string.Equals(req.SortOrder.Trim(), "asc")
