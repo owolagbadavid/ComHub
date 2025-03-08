@@ -14,7 +14,11 @@ public class ItemQueryHandler(AppDbContext dbContext, IUserContext userContext, 
 
     public async Task<PaginationResponse<SearchItemModel>> GetItems(PaginationRequest req)
     {
-        var query = _dbContext.Items.AsQueryable();
+        var query = _dbContext
+            .Items.Include(x => x.Images.Where(i => i.IsMain))
+            .Include(i => i.ItemCategories)
+            .ThenInclude(ic => ic.Category)
+            .AsQueryable();
 
         query = req.SortColumn switch
         {
@@ -40,8 +44,15 @@ public class ItemQueryHandler(AppDbContext dbContext, IUserContext userContext, 
 
     public async Task<ItemModel> GetItem(int id)
     {
-        return mapper.Map<ItemModel>(await _dbContext.Items.FindAsync(id))
-            ?? throw new NotFoundException("Item not found");
+        return mapper.Map<ItemModel>(
+                await _dbContext
+                    .Items.Include(i => i.Images)
+                    .Include(i => i.ItemCategories)
+                    .ThenInclude(ic => ic.Category)
+                    .AsQueryable()
+                    .Where(i => i.Id == id)
+                    .FirstOrDefaultAsync()
+            ) ?? throw new NotFoundException("Item not found");
     }
 
     public async Task<PaginationResponse<CategoryModel>> GetCategories(PaginationRequest req)

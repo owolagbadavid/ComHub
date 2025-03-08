@@ -14,5 +14,12 @@ internal class CategoryConfiguration : IEntityTypeConfiguration<Category>
         builder.Property(category => category.Id).ValueGeneratedOnAdd();
 
         builder.Property(category => category.Name).HasMaxLength(50);
+
+        // restrict deletion of categories that are still in use
+        builder
+            .HasMany(category => category.ItemCategories)
+            .WithOne(itemCategory => itemCategory.Category)
+            .HasForeignKey(itemCategory => itemCategory.CategoryId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

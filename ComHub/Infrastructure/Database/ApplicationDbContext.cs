@@ -4,7 +4,9 @@ using System.Linq.Expressions;
 using System.Text.RegularExpressions;
 using ComHub.Infrastructure.Database.Entities;
 using ComHub.Infrastructure.Database.Entities.Enums;
+using ComHub.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 public partial class AppDbContext(DbContextOptions options) : DbContext(options)
 {
@@ -83,7 +85,15 @@ public partial class AppDbContext(DbContextOptions options) : DbContext(options)
             }
         }
 
-        return base.SaveChanges();
+        try
+        {
+            return base.SaveChanges();
+        }
+        catch (DbUpdateException ex)
+        {
+            HandleDBException(ex);
+            throw;
+        }
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
@@ -104,7 +114,71 @@ public partial class AppDbContext(DbContextOptions options) : DbContext(options)
             }
         }
 
-        return await base.SaveChangesAsync(cancellationToken);
+        try
+        {
+            return await base.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex)
+        {
+            HandleDBException(ex);
+            throw;
+        }
+    }
+
+    // Updated regex for PostgreSQL foreign key constraint violations
+    [GeneratedRegex(@"violates foreign key constraint ""(.+?)""", RegexOptions.Compiled)]
+    private static partial Regex ForeignKeyConstraintRegex();
+
+    // Updated regex for PostgreSQL unique constraint violations
+    [GeneratedRegex(@"violates unique constraint ""(.+?)""", RegexOptions.Compiled)]
+    private static partial Regex UniqueConstraintRegex();
+
+    private static void HandleDBException(DbUpdateException ex)
+    {
+        if (ex.InnerException is PostgresException pgEx)
+        {
+            // PostgreSQL SQLSTATE error codes
+            const string ForeignKeyViolationCode = "23503"; // Foreign key violation (includes restricted delete)
+            const string UniqueViolationCode = "23505"; // Unique constraint violation
+
+            if (pgEx.SqlState == ForeignKeyViolationCode)
+            {
+                string errorMessage = pgEx.Message.ToLower();
+
+                // Handling general foreign key violation (invalid reference)
+                var match = ForeignKeyConstraintRegex().Match(pgEx.Message);
+                if (match.Success)
+                {
+                    string? constraintName = match.Groups[1].Value;
+                    string? columnName = constraintName
+                        ?.Replace("FK_", "")
+                        .Split('_')
+                        .LastOrDefault();
+
+                    throw new BadRequestException(
+                        $"{columnName ?? "A related entity"} does not exist or is invalid"
+                    );
+                }
+            }
+            else if (pgEx.SqlState == UniqueViolationCode)
+            {
+                // Handling unique constraint violation
+                var match = UniqueConstraintRegex().Match(pgEx.Message);
+                if (match.Success)
+                {
+                    string? constraintName = match.Groups[1].Value;
+                    string? columnName = constraintName
+                        ?.Replace("UQ_", "")
+                        ?.Replace("IX_", "")
+                        .Split('_')
+                        .LastOrDefault();
+
+                    throw new BadRequestException(
+                        $"{columnName ?? "The entity"} must be unique but a duplicate value was found"
+                    );
+                }
+            }
+        }
     }
 
     public DbSet<User> Users => Set<User>();

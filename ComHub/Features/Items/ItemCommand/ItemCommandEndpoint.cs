@@ -1,6 +1,9 @@
 namespace ComHub.Features.Items.ItemCommand;
 
 using System.ComponentModel.DataAnnotations;
+using AutoMapper;
+using ComHub.Features.Items.ItemQuery;
+using ComHub.Infrastructure.Database.Entities;
 using ComHub.Shared.Interfaces;
 using ComHub.Shared.Models;
 using ComHub.Shared.Services.Utils;
@@ -30,7 +33,41 @@ public class ItemCommandEndpoint : IEndpoint
                     return Results.Created("", await handler.AddEditItem(request, ct: ct));
                 }
             )
-            .Produces<DataResponse<CreatedWithUrls>>(StatusCodes.Status201Created);
+            .Produces<DataResponse<int>>(StatusCodes.Status201Created);
+
+        item.MapPost(
+                "/categories",
+                async (
+                    AddEditCategoriesRequest request,
+                    ItemCommandHandler handler,
+                    IMapper mapper,
+                    CancellationToken ct
+                ) =>
+                {
+                    await HelperService.HandleValidation(
+                        new AddEditCategoriesRequestValidator(),
+                        request
+                    );
+                    var categories = mapper.Map<List<Category>>(request.Categories);
+
+                    return Results.Created("", await handler.AddEditCategories(categories, ct));
+                }
+            )
+            .Produces<DataResponse<int>>(StatusCodes.Status201Created);
+
+        item.MapDelete(
+                "/categories",
+                async (
+                    [FromBody] List<int> categoryIds,
+                    ItemCommandHandler handler,
+                    CancellationToken ct
+                ) =>
+                {
+                    await handler.DeleteCategories(categoryIds, ct);
+                    return Results.Ok();
+                }
+            )
+            .Produces<Response>(StatusCodes.Status200OK);
 
         item.MapPut(
                 "/{id}",
@@ -46,42 +83,37 @@ public class ItemCommandEndpoint : IEndpoint
                     return Results.Ok(await handler.AddEditItem(request, id, ct));
                 }
             )
-            .Produces<DataResponse<CreatedWithUrls>>(StatusCodes.Status200OK);
+            .Produces<DataResponse<int>>(StatusCodes.Status200OK);
 
         item.MapPatch(
-            "/{id}/images",
-            async (
-                int id,
-                [FromForm] IFormFileCollection images,
-                ItemCommandHandler handler,
-                CancellationToken ct
-            ) =>
-            {
-                return Results.Ok(await handler.AddItemImages(id, images, ct));
-            }
-        );
+                "/{id}/images",
+                async (
+                    int id,
+                    [FromForm] IFormFileCollection images,
+                    ItemCommandHandler handler,
+                    CancellationToken ct
+                ) =>
+                {
+                    return Results.Ok(await handler.AddItemImages(id, images, ct));
+                }
+            )
+            .Produces<DataResponse<int>>(StatusCodes.Status200OK);
+
+        item.MapDelete(
+                "/{id}/images",
+                async (
+                    int id,
+                    [FromBody] List<int> imageIds,
+                    ItemCommandHandler handler,
+                    CancellationToken ct
+                ) =>
+                {
+                    await handler.DeleteItemImages(id, imageIds, ct);
+                    return Results.Ok();
+                }
+            )
+            .Produces<Response>(StatusCodes.Status200OK);
     }
-}
-
-public class CreateItemRequest
-{
-    [Required]
-    public string Name { get; set; } = string.Empty;
-
-    [Required]
-    public string Description { get; set; } = string.Empty;
-
-    [Range(1, double.MaxValue)]
-    public decimal Price { get; set; }
-
-    [Range(1, int.MaxValue)]
-    public int Quantity { get; set; }
-
-    [Required]
-    public string Brand { get; set; } = string.Empty;
-
-    [Required]
-    public ICollection<int> CategoryIds { get; set; } = [];
 }
 
 public class CreateItemRequestValidator : AbstractValidator<CreateItemRequest>
@@ -99,3 +131,20 @@ public class CreateItemRequestValidator : AbstractValidator<CreateItemRequest>
         RuleForEach(x => x.CategoryIds).GreaterThan(0);
     }
 }
+
+public class AddEditCategoriesRequestValidator : AbstractValidator<AddEditCategoriesRequest>
+{
+    public AddEditCategoriesRequestValidator()
+    {
+        // RuleForEach(x => x.Categories).SetValidator(new CategoryModelValidator());
+        RuleForEach(x => x.Categories).ChildRules(x => x.RuleFor(y => y.Name).NotEmpty());
+    }
+}
+
+// public class CategoryModelValidator : AbstractValidator<CategoryModel>
+// {
+//     public CategoryModelValidator()
+//     {
+//         RuleFor(x => x.Name).NotEmpty();
+//     }
+// }

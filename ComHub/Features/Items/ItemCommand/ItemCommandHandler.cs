@@ -157,7 +157,10 @@ public class ItemCommandHandler(
         }
     }
 
-    public async Task AddEditCategories(List<Category> categories, CancellationToken ct = default)
+    public async Task<int> AddEditCategories(
+        List<Category> categories,
+        CancellationToken ct = default
+    )
     {
         var categoryNames = categories.Select(c => c.Name.ToLower()).ToHashSet();
 
@@ -191,6 +194,8 @@ public class ItemCommandHandler(
             _dbContext.Categories.UpdateRange(existingCategories);
 
         await _dbContext.SaveChangesAsync(ct);
+
+        return newCategories.Count;
     }
 
     public async Task DeleteCategories(List<int> categoryIds, CancellationToken ct = default)
@@ -198,6 +203,9 @@ public class ItemCommandHandler(
         var categories = await _dbContext
             .Categories.Where(c => categoryIds.Contains(c.Id))
             .ToListAsync(ct);
+
+        if (categories.Count == 0)
+            throw new NotFoundException("Categories not found");
 
         _dbContext.Categories.RemoveRange(categories);
 

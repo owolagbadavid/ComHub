@@ -1,11 +1,7 @@
 namespace ComHub.Features.Items.ItemQuery;
 
-using System.ComponentModel.DataAnnotations;
-using ComHub.Infrastructure.Database.Entities;
 using ComHub.Shared.Interfaces;
 using ComHub.Shared.Models;
-using ComHub.Shared.Services.Utils;
-using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 
 public class ItemCommandEndpoint : IEndpoint
@@ -49,7 +45,7 @@ public class ItemCommandEndpoint : IEndpoint
                     return Results.Ok(await handler.GetItem(id));
                 }
             )
-            .Produces<DataResponse<SearchItemModel>>(StatusCodes.Status200OK);
+            .Produces<DataResponse<ItemModel>>(StatusCodes.Status200OK);
 
         item.MapGet(
                 "/categories",
