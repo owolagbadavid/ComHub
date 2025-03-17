@@ -5,6 +5,7 @@ using ComHub.Shared.Services.Notifications.Email;
 using MassTransit;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
+using SignalRChat.Hubs;
 
 // using FluentValidation;
 
@@ -55,6 +56,7 @@ builder.Services.AddMassTransit(x =>
     );
 });
 builder.Services.AddAutoMapper(typeof(Program));
+builder.Services.AddSignalR();
 
 builder.Services.AddCors(options =>
 {
@@ -70,7 +72,11 @@ app.UseCors();
 app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 
 var api = app.MapGroup("/api");
+var hub = app.MapGroup("/hub");
+
+hub.MapHub<TestHub>("/test");
 api.RegisterEndpoints();
+
 app.UseHttpsRedirection();
 
 app.RegisterSwagger();
