@@ -4,6 +4,7 @@ using ComHub.Shared.Middlewares;
 using ComHub.Shared.Services.Notifications.Email;
 using MassTransit;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using SignalRChat.Hubs;
 
@@ -56,7 +57,16 @@ builder.Services.AddMassTransit(x =>
     );
 });
 builder.Services.AddAutoMapper(typeof(Program));
-builder.Services.AddSignalR();
+builder.Services.AddSingleton<CustomFilter>();
+builder
+    .Services.AddSignalR(opts =>
+    {
+        opts.AddFilter<CustomFilter>();
+    })
+    .AddHubOptions<TestHub>(options =>
+    {
+        options.EnableDetailedErrors = true;
+    });
 
 builder.Services.AddCors(options =>
 {
