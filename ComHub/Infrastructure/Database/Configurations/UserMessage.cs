@@ -14,5 +14,17 @@ internal class UserMessageConfiguration : IEntityTypeConfiguration<UserMessage>
         builder.HasKey(x => x.Id);
         builder.HasAlternateKey(x => new { x.MessageId, x.UserId });
         builder.Property(x => x.Status).HasDefaultValue(MessageStatus.Sent);
+
+        builder
+            .HasOne(um => um.User)
+            .WithMany()
+            .HasForeignKey(um => um.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder
+            .HasOne(um => um.Message)
+            .WithMany()
+            .HasForeignKey(um => um.MessageId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

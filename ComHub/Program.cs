@@ -80,11 +80,13 @@ var app = builder.Build();
 
 app.UseCors();
 app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
+app.RegisterAuth();
 
 var api = app.MapGroup("/api");
 var hub = app.MapGroup("/hub");
 
 hub.MapHub<TestHub>("/test");
+hub.MapHub<PersonalChatHub>("/chat");
 api.RegisterEndpoints();
 
 app.UseHttpsRedirection();

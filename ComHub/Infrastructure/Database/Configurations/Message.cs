@@ -11,5 +11,17 @@ internal class MessageConfiguration : IEntityTypeConfiguration<Message>
         builder.ToTable(Table.Message);
 
         builder.HasKey(x => x.Id);
+
+        builder
+            .HasOne(m => m.Conversation)
+            .WithMany(c => c.Messages)
+            .HasForeignKey(m => m.ConversationId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder
+            .HasOne(m => m.Sender)
+            .WithMany()
+            .HasForeignKey(m => m.SenderId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

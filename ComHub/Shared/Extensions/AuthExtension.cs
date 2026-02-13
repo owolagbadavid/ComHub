@@ -37,6 +37,22 @@ public static class AuthExtension
                     };
                     options.Events = new JwtBearerEvents
                     {
+                        OnMessageReceived = context =>
+                        {
+                            var accessToken = context.Request.Query["access_token"];
+                            var path = context.HttpContext.Request.Path;
+
+                            if (
+                                !string.IsNullOrWhiteSpace(accessToken)
+                                && path.StartsWithSegments("/hub")
+                            )
+                            {
+                                context.Token = accessToken;
+                            }
+
+                            return Task.CompletedTask;
+                        },
+
                         OnAuthenticationFailed = context =>
                         {
                             throw new UnauthorizedException("Invalid token");
@@ -49,7 +65,14 @@ public static class AuthExtension
 
                         OnChallenge = context =>
                         {
-                            if (string.IsNullOrEmpty(context.Request.Headers["Authorization"]))
+                            var hasAuthHeader = !string.IsNullOrEmpty(
+                                context.Request.Headers["Authorization"]
+                            );
+                            var hasQueryToken = !string.IsNullOrWhiteSpace(
+                                context.Request.Query["access_token"]
+                            );
+
+                            if (!hasAuthHeader && !hasQueryToken)
                             {
                                 throw new UnauthorizedException("Authorization header is missing");
                             }
