@@ -85,6 +85,16 @@ public class ItemCommandEndpoint : IEndpoint
             )
             .Produces<DataResponse<int>>(StatusCodes.Status200OK);
 
+        item.MapDelete(
+                "/{id}",
+                async (int id, ItemCommandHandler handler, CancellationToken ct) =>
+                {
+                    await handler.DeleteItem(id, ct);
+                    return Results.Ok();
+                }
+            )
+            .Produces<Response>(StatusCodes.Status200OK);
+
         item.MapPatch(
                 "/{id}/images",
                 async (

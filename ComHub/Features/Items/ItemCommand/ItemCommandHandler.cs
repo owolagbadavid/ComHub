@@ -17,6 +17,36 @@ public class ItemCommandHandler(
 {
     private readonly AppDbContext _dbContext = dbContext;
 
+    private void EnsureAdmin()
+    {
+        if (!string.Equals(userContext.UserRole, "Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ForbiddenException("Admin access required");
+        }
+    }
+
+    private async Task<Item> GetOwnedItem(int id, CancellationToken ct)
+    {
+        var userId = userContext.UserId;
+        if (userId == 0)
+        {
+            throw new UnauthorizedException("User is not authorized");
+        }
+
+        var item = await _dbContext.Items.FirstOrDefaultAsync(x => x.Id == id, ct);
+        if (item == null)
+        {
+            throw new NotFoundException("Item not found");
+        }
+
+        if (item.OwnerId != userId)
+        {
+            throw new ForbiddenException("You do not have access to this item");
+        }
+
+        return item;
+    }
+
     public async Task<int> AddEditItem(
         CreateItemRequest request,
         int id = default,
@@ -31,13 +61,18 @@ public class ItemCommandHandler(
 
         if (id != default)
         {
-            item =
-                await _dbContext
-                    .Items.Include(x => x.Images)
-                    .FirstOrDefaultAsync(
-                        x => x.Id == id && x.OwnerId == user.Id,
-                        cancellationToken: ct
-                    ) ?? throw new NotFoundException("Item not found");
+            item = await _dbContext.Items
+                .Include(x => x.Images)
+                .FirstOrDefaultAsync(x => x.Id == id, cancellationToken: ct);
+            if (item == null)
+            {
+                throw new NotFoundException("Item not found");
+            }
+
+            if (item.OwnerId != user.Id)
+            {
+                throw new ForbiddenException("You do not have access to this item");
+            }
 
             item.Name = request.Name.Trim();
             item.Description = request.Description.Trim();
@@ -80,9 +115,10 @@ public class ItemCommandHandler(
 
     public async Task DeleteItemImages(int id, List<int> imageIds, CancellationToken ct = default)
     {
+        var ownedItem = await GetOwnedItem(id, ct);
         var item =
-            await _dbContext
-                .Items.Where(x => x.Id == id)
+            await _dbContext.Items
+                .Where(x => x.Id == ownedItem.Id)
                 .Select(x => new
                 {
                     x.Id,
@@ -111,9 +147,7 @@ public class ItemCommandHandler(
         CancellationToken ct = default
     )
     {
-        var item =
-            await _dbContext.Items.FindAsync([id], cancellationToken: ct)
-            ?? throw new NotFoundException("Item not found");
+        var item = await GetOwnedItem(id, ct);
 
         var imageUrls = new ConcurrentBag<string>();
         try
@@ -162,6 +196,7 @@ public class ItemCommandHandler(
         CancellationToken ct = default
     )
     {
+        EnsureAdmin();
         var categoryNames = categories.Select(c => c.Name.ToLower()).ToHashSet();
 
         var existingCategories = await _dbContext
@@ -200,6 +235,7 @@ public class ItemCommandHandler(
 
     public async Task DeleteCategories(List<int> categoryIds, CancellationToken ct = default)
     {
+        EnsureAdmin();
         var categories = await _dbContext
             .Categories.Where(c => categoryIds.Contains(c.Id))
             .ToListAsync(ct);
@@ -209,6 +245,14 @@ public class ItemCommandHandler(
 
         _dbContext.Categories.RemoveRange(categories);
 
+        await _dbContext.SaveChangesAsync(ct);
+    }
+
+    public async Task DeleteItem(int id, CancellationToken ct = default)
+    {
+        var item = await GetOwnedItem(id, ct);
+        item.IsDeleted = true;
+        _dbContext.Items.Update(item);
         await _dbContext.SaveChangesAsync(ct);
     }
 }
